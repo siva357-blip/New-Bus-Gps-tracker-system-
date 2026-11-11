@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>College Bus GPS Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F8;--surface:#fff;--ink:#12263F;--muted:#5B6B80;--line:#DDE3EB;--accent:#1F5EFF;--soft:#E6EDFF;--road:#E4E9F0;--ok:#16915A;--bus:#F2A900;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0E1621;--surface:#162232;--ink:#E8EEF6;--muted:#93A3B8;--line:#263548;--accent:#6C97FF;--soft:#1D2D4D;--road:#1E2C3E;--ok:#3CCB8A}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0E1621;--surface:#162232;--ink:#E8EEF6;--muted:#93A3B8;--line:#263548;--accent:#6C97FF;--soft:#1D2D4D;--road:#1E2C3E;--ok:#3CCB8A}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 20px 48px}
+h1{font-size:clamp(28px,5vw,44px);line-height:1.08;margin:0;font-weight:800;letter-spacing:-.02em}
+.sub{margin:8px 0 20px;color:var(--muted)}
+nav{display:flex;gap:6px;margin-bottom:24px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav a{padding:10px 16px;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap}
+nav a:hover{color:var(--accent)}
+nav a:focus-visible,.chip:focus-visible,.item:focus-visible,.run:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tab{margin-bottom:40px}
+.layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px}
+.item:hover{border-color:var(--accent)}.item[aria-pressed="true"]{border-color:var(--accent);background:var(--soft)}
+.item b{display:block}.item span{font-size:13px;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 40px -16px rgba(18,38,63,.25);overflow:hidden}
+svg{display:block;width:100%;height:auto}
+.road{stroke:var(--road);stroke-width:14;fill:none;stroke-linecap:round}
+.rt{fill:none;stroke-width:5;stroke-linecap:round;stroke:var(--line)}.rt.on{stroke:var(--accent)}
+.lbl{font:600 13px "Plus Jakarta Sans",system-ui,sans-serif;fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:4px}
+.busm{transition:transform 1.4s linear;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+.stat{padding:14px 18px;border-right:1px solid var(--line)}.stat:last-child{border-right:0}
+.stat small{display:block;color:var(--muted);font-size:13px}.stat b{font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px}
+.card h2{margin:0 0 10px;font-size:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip{all:unset;cursor:pointer;font-size:14px;font-weight:500;padding:7px 12px;border:1.5px solid var(--line);border-radius:999px}
+.chip:hover,.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--soft)}
+textarea{width:100%;min-height:110px;font:14px ui-monospace,SFMono-Regular,Menlo,monospace;padding:12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
+.run{all:unset;cursor:pointer;margin-top:10px;background:var(--accent);color:#fff;font-weight:600;padding:10px 20px;border-radius:10px}
+.scroll{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;font-size:14px;min-width:100%}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600}
+.err{color:#C0392B;font-weight:500;margin-top:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card li{margin:6px 0}
+code{font:13px ui-monospace,Menlo,monospace;background:var(--bg);padding:1px 6px;border-radius:6px}
+.note{color:var(--muted);font-size:13px;margin-top:16px}
+@media(max-width:860px){.layout,.two{grid-template-columns:1fr}.list{flex-direction:row;overflow-x:auto}.item{flex:0 0 220px}.stats{grid-template-columns:repeat(2,1fr)}.stat:nth-child(2){border-right:0}.stat:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+@media(prefers-reduced-motion:reduce){.busm{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>College Bus GPS Tracker</h1>
+  <p class="sub" id="sub">Starting the database…</p>
+  <nav>
+    <a href="#live">Live tracking</a>
+    <a href="#db">Database</a>
+    <a href="#oop">OOP design</a>
+  </nav>
+
+  <section class="tab" id="live">
+    <div class="layout">
+      <div class="list" id="list"></div>
+      <div class="panel">
+        <svg viewBox="0 0 800 500" role="img" aria-label="Live map of college bus routes">
+          <path class="road" d="M0 250 H800"/><path class="road" d="M400 0 V500"/>
+          <path class="road" d="M0 120 C200 160 300 90 520 130 S720 90 800 110"/>
+          <path class="road" d="M0 390 C220 350 320 430 540 390 S720 420 800 380"/>
+          <g id="routes"></g><g id="stops"></g><g id="buses"></g>
+        </svg>
+        <div class="stats" id="stats"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" id="db">
+    <div class="two">
+      <div class="card">
+        <h2>Tables</h2>
+        <div class="chips" id="tableChips"></div>
+        <div class="scroll" id="tableView"></div>
+      </div>
+      <div class="card">
+        <h2>Run SQL</h2>
+        <div class="chips" id="sampleChips"></div>
+        <textarea id="sql" spellcheck="false" aria-label="SQL query"></textarea>
+        <button class="run" id="runBtn" type="button">Run query</button>
+        <div id="result"></div>
+      </div>
+    </div>
+    <div class="card"><h2>ER diagram</h2>
+<pre class="mermaid">erDiagram
+  DRIVER ||--o{ BUS : drives
+  ROUTE ||--o{ BUS : "is assigned to"
+  ROUTE ||--|{ STOP : has
+  BUS ||--o{ BUS_LOCATION : reports
+</pre></div>
+  </section>
+
+  <section class="tab" id="oop">
+    <div class="card"><h2>Class diagram</h2>
+<pre class="mermaid">classDiagram
+  class Vehicle{
+    -id
+    -number
+    +describe()
+  }
+  class Bus{
+    +route
+    +driver
+    +update()
+    +distanceToCampusKm()
+  }
+  class Route{
+    -stops
+    +addStop()
+    +pointAt()
+  }
+  class Stop
+  class Driver
+  class BusRepository{
+    +loadBuses()
+    +saveLocation()
+  }
+  class GpsSimulator{
+    +tick()
+  }
+  Vehicle &lt;|-- Bus
+  Route "1" o-- "many" Stop
+  Bus --> Route
+  Bus --> Driver
+  BusRepository ..> Bus
+  GpsSimulator ..> BusRepository
+</pre></div>
+    <div class="card"><h2>Where each OOP concept is used</h2>
+      <ul>
+        <li><b>Encapsulation:</b> <code>Vehicle</code> keeps <code>#id</code> and <code>#number</code> private. <code>Route</code> keeps <code>#stops</code> private.</li>
+        <li><b>Inheritance:</b> <code>Bus</code> extends <code>Vehicle</code>.</li>
+        <li><b>Polymorphism:</b> <code>Bus</code> overrides <code>describe()</code>.</li>
+        <li><b>Abstraction:</b> <code>BusRepository</code> hides all SQL from the rest of the app.</li>
+        <li><b>Composition:</b> a <code>Route</code> has many <code>Stop</code> objects, and a <code>Bus</code> has a <code>Route</code> and a <code>Driver</code>.</li>
+      </ul>
+    </div>
+  </section>
+  <p class="note">Demo data: the database runs inside your browser and bus positions are simulated.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.9.0/sql-asm.min.js"></script>
+<script>
+/* ================= OOP: model classes ================= */
+class Vehicle {
+  #id; #number;
+  constructor(id, number) { this.#id = id; this.#number = number; }
+  get id() { return this.#id; }
+  get number() { return this.#number; }
+  describe() { return "Vehicle " + this.#number; }
+}
+class Driver {
+  constructor(id, name, phone) { this.id = id; this.name = name; this.phone = phone; }
+}
+class Stop {
+  constructor(id, name, seq, lat, lng) { Object.assign(this, { id, name, seq, lat, lng }); }
+}
+class Route {
+  #stops = [];
+  constructor(id, name) { this.id = id; this.name = name; }
+  addStop(stop) { this.#stops.push(stop); }
+  get stops() { return this.#stops; }
+  get campus() { return this.#stops[this.#stops.length - 1]; }
+  pointAt(p) {                       // p from 0 to 1 along the route
+    const n = this.#stops.length, pos = p * (n - 1), i = Math.min(Math.floor(pos), n - 2), f = pos - i;
+    const a = this.#stops[i], b = this.#stops[i + 1];
+    return [a.lat + (b.lat - a.lat) * f, a.lng + (b.lng - a.lng) * f];
+  }
+}
+class Bus extends Vehicle {
+  constructor(id, number, route, driver) {
+    super(id, number);
+    this.route = route; this.driver = driver;
+    this.lat = null; this.lng = null; this.speed = 0; this.updatedAt = "";
+  }
+  describe() { return "Bus " + this.number + " on " + this.route.name; }
+  update(lat, lng, speed, at) { this.lat = lat; this.lng = lng; this.speed = speed; this.updatedAt = at; }
+  distanceToCampusKm() {
+    const c = this.route.campus, r = Math.PI / 180, R = 6371;
+    const dLat = (c.lat - this.lat) * r, dLng = (c.lng - this.lng) * r;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(this.lat * r) * Math.cos(c.lat * r) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+}
+
+/* ================= DBMS: SQLite via sql.js ================= */
+const SCHEMA = `
+CREATE TABLE driver (driver_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, phone TEXT UNIQUE);
+CREATE TABLE route (route_id INTEGER PRIMARY KEY AUTOINCREMENT, route_name TEXT NOT NULL);
+CREATE TABLE stop (stop_id INTEGER PRIMARY KEY AUTOINCREMENT, route_id INTEGER NOT NULL, stop_name TEXT NOT NULL,
+  seq INTEGER NOT NULL, lat REAL NOT NULL, lng REAL NOT NULL, UNIQUE (route_id, seq),
+  FOREIGN KEY (route_id) REFERENCES route(route_id));
+CREATE TABLE bus (bus_id INTEGER PRIMARY KEY AUTOINCREMENT, bus_number TEXT NOT NULL UNIQUE,
+  route_id INTEGER NOT NULL, driver_id INTEGER NOT NULL,
+  FOREIGN KEY (route_id) REFERENCES route(route_id), FOREIGN KEY (driver_id) REFERENCES driver(driver_id));
+CREATE TABLE bus_location (loc_id INTEGER PRIMARY KEY AUTOINCREMENT, bus_id INTEGER NOT NULL, lat REAL NOT NULL, lng REAL NOT NULL,
+  speed_kmh REAL DEFAULT 0, recorded_at TEXT DEFAULT (datetime('now','localtime')),
+  FOREIGN KEY (bus_id) REFERENCES bus(bus_id));
+CREATE VIEW latest_location AS
+  SELECT l.* FROM bus_location l JOIN (SELECT bus_id, MAX(loc_id) AS m FROM bus_location GROUP BY bus_id) x ON l.loc_id = x.m;
+INSERT INTO driver(name, phone) VALUES ('Murugan','9000000001'),('Selvam','9000000002'),('Karthik','9000000003');
+INSERT INTO route(route_name) VALUES ('Route 1 - Tambaram'),('Route 2 - Porur');
+INSERT INTO stop(route_id, stop_name, seq, lat, lng) VALUES
+ (1,'Tambaram',1,12.9249,80.1000),(1,'Chromepet',2,12.9516,80.1462),(1,'Guindy',3,13.0067,80.2206),(1,'College Campus',4,13.0108,80.2347),
+ (2,'Porur',1,13.0382,80.1565),(2,'Koyambedu',2,13.0694,80.1948),(2,'Vadapalani',3,13.0500,80.2121),(2,'College Campus',4,13.0108,80.2347);
+INSERT INTO bus(bus_number, route_id, driver_id) VALUES ('TN09AB1201',1,1),('TN09AB1202',2,2),('TN09AB1203',1,3);
+`;
+
+class Database {
+  constructor(SQL) { this.db = new SQL.Database(); this.db.run("PRAGMA foreign_keys = ON;"); this.db.run(SCHEMA); }
+  run(sql, params = []) { this.db.run(sql, params); }
+  all(sql, params = []) {
+    const st = this.db.prepare(sql); st.bind(params);
+    const rows = []; while (st.step()) rows.push(st.getAsObject());
+    st.free(); return rows;
+  }
+}
+
+/* Abstraction: the rest of the app never writes SQL */
+class BusRepository {
+  constructor(db) { this.db = db; }
+  loadRoutes() {
+    const map = new Map();
+    this.db.all("SELECT route_id, route_name FROM route").forEach(r => map.set(r.route_id, new Route(r.route_id, r.route_name)));
+    this.db.all("SELECT * FROM stop ORDER BY route_id, seq")
+      .forEach(s => map.get(s.route_id).addStop(new Stop(s.stop_id, s.stop_name, s.seq, s.lat, s.lng)));
+    return map;
+  }
+  loadBuses(routes) {
+    const sql = `SELECT b.bus_id, b.bus_number, b.route_id, d.driver_id, d.name, d.phone, l.lat, l.lng, l.speed_kmh, l.recorded_at
+      FROM bus b JOIN driver d ON d.driver_id = b.driver_id
+      LEFT JOIN latest_location l ON l.bus_id = b.bus_id ORDER BY b.bus_id`;
+    return this.db.all(sql).map(r => {
+      const bus = new Bus(r.bus_id, r.bus_number, routes.get(r.route_id), new Driver(r.driver_id, r.name, r.phone));
+      if (r.recorded_at) bus.update(r.lat, r.lng, r.speed_kmh, r.recorded_at);
+      return bus;
+    });
+  }
+  saveLocation(busId, lat, lng, speed) {
+    this.db.run("INSERT INTO bus_location(bus_id, lat, lng, speed_kmh) VALUES (?,?,?,?)", [busId, lat, lng, speed]);
+  }
+}
+
+/* Plays the role of the GPS device in each bus */
+class GpsSimulator {
+  #progress = new Map();
+  constructor(repo, buses) { this.repo = repo; this.buses = buses; }
+  tick() {
+    this.buses.forEach((b, i) => {
+      let p = (this.#progress.get(b.id) ?? i * 0.3) + 0.03;
+      if (p > 1) p = 0;
+      this.#progress.set(b.id, p);
+      const [lat, lng] = b.route.pointAt(p);
+      this.repo.saveLocation(b.id, lat, lng, 28 + Math.random() * 12);
+    });
+  }
+}
+
+/* ================= UI ================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const NS = "http://www.w3.org/2000/svg";
+const proj = (lat, lng) => [(lng - 80.08) / 0.18 * 700 + 50, (13.09 - lat) / 0.19 * 400 + 50];
+
+function tableHtml(cols, rows) {
+  if (!rows.length) return "<p>No rows.</p>";
+  return "<table><thead><tr>" + cols.map(c => "<th>" + esc(c) + "</th>").join("") + "</tr></thead><tbody>" +
+    rows.map(r => "<tr>" + cols.map(c => "<td>" + esc(typeof r[c] === "number" ? +r[c].toFixed(4) : r[c]) + "</td>").join("") + "</tr>").join("") +
+    "</tbody></table>";
+}
+
+class TrackerApp {
+  constructor(database) {
+    this.database = database; this.repo = new BusRepository(database);
+    this.routes = this.repo.loadRoutes(); this.buses = this.repo.loadBuses(this.routes);
+    this.sim = new GpsSimulator(this.repo, this.buses);
+    this.selected = this.buses[0].id; this.table = "bus_location"; this.markers = new Map();
+    this.drawMap(); this.drawDbTab(); this.tick(); this.renderTable();
+    setInterval(() => this.tick(), 1500);
+  }
+  drawMap() {
+    this.routes.forEach(r => {
+      const p = document.createElementNS(NS, "polyline");
+      p.setAttribute("class", "rt"); p.setAttribute("points", r.stops.map(s => proj(s.lat, s.lng).join(",")).join(" "));
+      p.dataset.route = r.id; $("routes").appendChild(p);
+      r.stops.forEach((s, i) => {
+        if (i === r.stops.length - 1) return;
+        const [x, y] = proj(s.lat, s.lng), g = document.createElementNS(NS, "g");
+        g.setAttribute("transform", `translate(${x} ${y})`);
+        g.innerHTML = `<circle r="6" fill="var(--surface)" stroke="var(--accent)" stroke-width="3"/><text class="lbl" y="-13" text-anchor="middle">${esc(s.name)}</text>`;
+        $("stops").appendChild(g);
+      });
+    });
+    const c = [...this.routes.values()][0].campus, [cx, cy] = proj(c.lat, c.lng), cg = document.createElementNS(NS, "g");
+    cg.setAttribute("transform", `translate(${cx} ${cy})`);
+    cg.innerHTML = `<circle r="22" fill="var(--accent)"/><path d="M-10 4 L0 -8 L10 4 M-7 3 V10 H7 V3" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/><text class="lbl" y="42" text-anchor="middle">Campus</text>`;
+    $("stops").appendChild(cg);
+    this.buses.forEach(b => {
+      const g = document.createElementNS(NS, "g"); g.setAttribute("class", "busm");
+      g.innerHTML = `<circle r="16" fill="var(--bus)" stroke="var(--surface)" stroke-width="3"/><text y="5" text-anchor="middle" font-size="14" font-weight="800" fill="#12263F">${b.id}</text>`;
+      g.addEventListener("click", () => { this.selected = b.id; this.render(); });
+      $("buses").appendChild(g); this.markers.set(b.id, g);
+    });
+  }
+  drawDbTab() {
+    const tables = ["driver", "route", "stop", "bus", "bus_location", "latest_location"];
+    $("tableChips").innerHTML = tables.map(t => `<button class="chip" type="button" data-t="${t}" aria-pressed="${t === this.table}">${t}</button>`).join("");
+    const samples = {
+      "Buses with route and driver": "SELECT b.bus_number, r.route_name, d.name AS driver\nFROM bus b\nJOIN route r ON r.route_id = b.route_id\nJOIN driver d ON d.driver_id = b.driver_id;",
+      "Latest location of each bus": "SELECT bus_id, lat, lng, speed_kmh, recorded_at\nFROM latest_location;",
+      "Average speed per bus": "SELECT bus_id, COUNT(*) AS readings, ROUND(AVG(speed_kmh), 1) AS avg_speed\nFROM bus_location\nGROUP BY bus_id;",
+      "Stops of Route 1": "SELECT seq, stop_name\nFROM stop\nWHERE route_id = 1\nORDER BY seq;"
+    };
+    if (!$("sampleChips").children.length) {
+    $("tableChips").addEventListener("click", e => { const t = e.target.dataset.t; if (t) { this.table = t; this.drawDbTab(); this.renderTable(); } });
+      Object.keys(samples).forEach(k => {
+        const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.textContent = k;
+        b.addEventListener("click", () => { $("sql").value = samples[k]; this.runSql(); });
+        $("sampleChips").appendChild(b);
+      });
+      $("sql").value = samples["Buses with route and driver"];
+      $("runBtn").addEventListener("click", () => this.runSql());
+    }
+  }
+  runSql() {
+    try {
+      const res = this.database.db.exec($("sql").value);
+      if (!res.length) { $("result").innerHTML = "<p>Done. The statement ran without returning rows.</p>"; return; }
+      const r = res[res.length - 1];
+      const rows = r.values.map(v => Object.fromEntries(r.columns.map((c, i) => [c, v[i]])));
+      $("result").innerHTML = "<div class='scroll'>" + tableHtml(r.columns, rows) + "</div>";
+    } catch (e) { $("result").innerHTML = "<p class='err'>" + esc(e.message) + "</p>"; }
+  }
+  renderTable() {
+    const order = this.table === "bus_location" ? " ORDER BY loc_id DESC LIMIT 10" : "";
+    const rows = this.database.all("SELECT * FROM " + this.table + order);
+    $("tableView").innerHTML = tableHtml(rows.length ? Object.keys(rows[0]) : [], rows);
+  }
+  tick() {
+    this.sim.tick();
+    this.buses = this.repo.loadBuses(this.routes);
+    this.sim.buses = this.buses;
+    this.render();
+    this.renderTable();
+  }
+  render() {
+    const sel = this.buses.find(b => b.id === this.selected);
+    $("list").innerHTML = this.buses.map(b => {
+      const mins = b.speed ? Math.max(1, Math.round(b.distanceToCampusKm() / b.speed * 60)) : "-";
+      return `<button class="item" type="button" aria-pressed="${b.id === this.selected}" data-id="${b.id}">
+        <b>${esc(b.number)}</b><span>${esc(b.route.name)}</span><br><span>About ${mins} min to campus</span></button>`;
+    }).join("");
+    document.querySelectorAll(".item").forEach(el => el.addEventListener("click", () => { this.selected = +el.dataset.id; this.render(); }));
+    this.buses.forEach(b => {
+      const [x, y] = proj(b.lat, b.lng), m = this.markers.get(b.id);
+      m.style.transform = `translate(${x}px, ${y}px)`; m.style.opacity = b.id === this.selected ? 1 : .5;
+      if (b.id === this.selected) $("buses").appendChild(m);
+    });
+    document.querySelectorAll(".rt").forEach(p => p.classList.toggle("on", +p.dataset.route === sel.route.id));
+    $("stats").innerHTML =
+      `<div class="stat"><small>Bus</small><b>${esc(sel.describe())}</b></div>` +
+      `<div class="stat"><small>Driver</small><b>${esc(sel.driver.name)}</b></div>` +
+      `<div class="stat"><small>Speed</small><b>${Math.round(sel.speed)} km/h</b></div>` +
+      `<div class="stat"><small>Last update</small><b>${esc(sel.updatedAt.slice(11, 19))}</b></div>`;
+  }
+}
+
+/* ================= start ================= */
+initSqlJs().then(SQL => {
+  window.app = new TrackerApp(new Database(SQL));
+  $("sub").textContent = "See where your bus is and when it reaches campus.";
+}).catch(e => { $("sub").textContent = "Could not start the database: " + e.message; });
+</script>
+</body>
+</html>
